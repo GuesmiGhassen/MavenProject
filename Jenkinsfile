@@ -1,7 +1,16 @@
 pipeline {
     agent any
-
+    tools {
+        maven 'maven-3.9'
+    }
     stages {
+        stage("init"){
+            steps {
+                script {
+                    gv = load "script.groovy"
+                }
+            }
+        }
         stage("test") {
             steps {
                 echo 'testing the application...'
@@ -9,17 +18,21 @@ pipeline {
             }
         }
         
-        stage("build") {
-            when {
-                expression {
-                    BRANCH_NAME == 'main'
-                }
-            }
+        stage("build jar") {
             steps {
-                echo 'building the application...'
+                script {
+                    gv.buildJar()
+                }
             }
         }
 
+        stage("build image") {
+            steps {
+                script {
+                    gv.buildImage()
+                }
+            }
+        }
 
         stage("deploy") {
             when {
