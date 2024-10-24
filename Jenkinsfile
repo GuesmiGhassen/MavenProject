@@ -1,56 +1,49 @@
 #!/usr/bin/env groovy
 
-@Library('Jenkins-shared-library')_
-def gv
+library identifier: 'Jenkins-shared-library@main', retriever: modernSCM(
+    [$class: 'GitSCMSource',
+     remote: 'https://github.com/GuesmiGhassen/Jenkins-shared-library.git',
+     credentialsId: 'Github'
+    ]
+)
 
 pipeline {
     agent any
     tools {
-        maven 'maven-3.9'
+        maven 'Maven'
+    }
+    environment {
+        IMAGE_NAME = 'ghassen07/my-repo:1.0'
     }
     stages {
-        stage("init"){
+        stage('build app') {
+            steps {
+               script {
+                  echo 'building application jar...'
+                  buildJar()
+               }
+            }
+        }
+        stage('build image') {
             steps {
                 script {
-                    gv = load "script.groovy"
+                   echo 'building docker image...'
+                   buildImage(env.IMAGE_NAME)
+                   dockerLogin()
+                   dockerPush(env.IMAGE_NAME)
                 }
             }
         }
-        stage("test") {
-            steps {
-                echo 'testing the application...'
-                echo "executing pipeline for $BRANCH_NAME..."
-            }
-        }
-        
-        stage("build jar") {
+        stage('deploy') {
             steps {
                 script {
-                    buildJar()
-                }
-            }
-        }
+                   echo 'deploying docker image to EC2...'
 
-        stage("build image") {
-            steps {
-                script {
-                    buildImage()
-                }
-            }
-        }
+                   def dockerCmd = "docker run -p 3080:3080 -d ${IMAGE_NAME}"
 
-        stage("deploy") {
-            when {
-                expression {
-                    BRANCH_NAME == 'main'
-                }
-            }
-            steps {
-                script {
-                    def dockerCMD = 'docker run -p 3080:3080 -d ghassen07/my-repo:1.0'
-                    sshagent(['ec2-server-key']) {
-                        sh "ssh -o StrictHostKeyChecking=no ec2-user@35.181.50.177 ${dockerCMD}"
-                    }
+                   sshagent(['ec2-server-key']) {
+                       sh "ssh -o StrictHostKeyChecking=no ec2-user@35.181.50.177 ${dockerCmd}"
+                   }
                 }
             }
         }
