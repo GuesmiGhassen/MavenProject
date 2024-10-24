@@ -13,7 +13,7 @@ pipeline {
         maven 'Maven'
     }
     environment {
-        IMAGE_NAME = 'ghassen07/my-repo:1.0'
+        IMAGE_NAME = 'ghassen07/my-repo:2.0'
     }
     stages {
         stage('build app') {
