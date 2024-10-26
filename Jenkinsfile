@@ -38,6 +38,7 @@ pipeline {
             steps {
                 script {
                    echo 'building docker image...'
+		   echo "Image name: ${env.IMAGE_NAME}" 
                    buildImage(env.IMAGE_NAME)
                    dockerLogin()
                    dockerPush(env.IMAGE_NAME)
