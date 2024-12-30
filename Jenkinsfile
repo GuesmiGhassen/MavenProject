@@ -17,7 +17,7 @@ pipeline {
         string(name: 'VERSION', defaultValue: 'latest', description: 'Application version to deploy')
     }
     stages {
-	stage('increment version') {
+	    stage('increment version') {
             steps {
                 script {
                     echo 'incrementing app version...'
@@ -30,7 +30,7 @@ pipeline {
                 }
             }
         }
-	stage('test') {
+	    stage('test') {
             steps {
                 script {
                     echo 'Running tests...'
@@ -88,7 +88,7 @@ pipeline {
                 }
             }
         }
-	stage('cleanup') {
+	    stage('cleanup') {
             steps {
                 script {
                     echo 'Cleaning up unused Docker resources...'
@@ -97,32 +97,29 @@ pipeline {
             }
         }
     }
-post {
-    always {
-        echo 'Pipeline execution completed.'
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            emailext(
+                subject: "Pipeline Success: ${env.IMAGE_NAME}",
+                body: """
+                    <h2>Pipeline Success</h2>
+                    <p><b>Image:</b> ${env.IMAGE_NAME}</p>
+                """,
+                to: 'ghassengasmi34@gmail.com'
+            )
+        }
+        failure {
+            emailext(
+                subject: "Pipeline Failure: ${env.IMAGE_NAME}",
+                body: """
+                    <h2>Pipeline Failure</h2>
+                    <p><b>Image:</b> ${env.IMAGE_NAME}</p>
+                """,
+                to: 'ghassengasmi34@gmail.com'
+            )
+        }
     }
-    success {
-        emailext(
-            subject: "Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """
-                <h2>Pipeline Success</h2>
-                <p>Pipeline <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> completed successfully.</p>
-                <p><b>Image:</b> ${env.IMAGE_NAME}</p>
-                <p>Check the build details <a href="${env.BUILD_URL}">here</a>.</p>
-            """,
-            to: 'your-team@example.com'
-        )
-    }
-    failure {
-        emailext(
-            subject: "Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """
-                <h2>Pipeline Failure</h2>
-                <p>Pipeline <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> failed.</p>
-                <p>Please check the logs <a href="${env.BUILD_URL}">here</a>.</p>
-            """,
-            to: 'your-team@example.com'
-        )
-    }
-}
 }
