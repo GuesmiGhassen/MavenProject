@@ -17,7 +17,7 @@ pipeline {
         string(name: 'VERSION', defaultValue: 'latest', description: 'Application version to deploy')
     }
     stages {
-	stage('increment version') {
+	    stage('increment version') {
             steps {
                 script {
                     echo 'incrementing app version...'
@@ -30,7 +30,7 @@ pipeline {
                 }
             }
         }
-	stage('test') {
+	    stage('test') {
             steps {
                 script {
                     echo 'Running tests...'
@@ -58,17 +58,16 @@ pipeline {
             }
         }
         stage('deploy') {
+            environment {
+                AWS_ACCESS_KEY_ID = credentials('aws_access_key_id')
+                AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+                APP_NAME = 'java-maven-app'
+            }
             steps {
                 script {
-                   echo 'Deploying Docker image to ${params.DEPLOY_ENV} environment...'
-		    def ec2Instance = (params.DEPLOY_ENV == 'production') ? "ec2-user@13.39.50.25" : "ec2-user@13.39.50.50"
-                    def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
-                   sshagent(['ec2-server-key']) {
-                       sh "scp -o StrictHostKeyChecking=no server-cmds.sh ${ec2Instance}:/home/ec2-user"
-                        sh "scp -o StrictHostKeyChecking=no docker-compose.yaml ${ec2Instance}:/home/ec2-user"
-                        echo "Deployment files copied successfully"
-                        sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
-                   }
+                    echo 'deploying docker image...'
+                    sh 'envsubst < kubernetes/deployment.yaml | kubectl apply -f -'
+                    sh 'envsubst < kubernetes/service.yaml | kubectl apply -f -'
                 }
             }
         }
@@ -88,7 +87,7 @@ pipeline {
                 }
             }
         }
-	stage('cleanup') {
+	    stage('cleanup') {
             steps {
                 script {
                     echo 'Cleaning up unused Docker resources...'
@@ -97,32 +96,29 @@ pipeline {
             }
         }
     }
-post {
-    always {
-        echo 'Pipeline execution completed.'
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            emailext(
+                subject: "Pipeline Success: ${env.IMAGE_NAME}",
+                body: """
+                    <h2>Pipeline Success</h2>
+                    <p><b>Image:</b> ${env.IMAGE_NAME}</p>
+                """,
+                to: 'ghassengasmi34@gmail.com'
+            )
+        }
+        failure {
+            emailext(
+                subject: "Pipeline Failure: ${env.IMAGE_NAME}",
+                body: """
+                    <h2>Pipeline Failure</h2>
+                    <p><b>Image:</b> ${env.IMAGE_NAME}</p>
+                """,
+                to: 'ghassengasmi34@gmail.com'
+            )
+        }
     }
-    success {
-        emailext(
-            subject: "Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """
-                <h2>Pipeline Success</h2>
-                <p>Pipeline <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> completed successfully.</p>
-                <p><b>Image:</b> ${env.IMAGE_NAME}</p>
-                <p>Check the build details <a href="${env.BUILD_URL}">here</a>.</p>
-            """,
-            to: 'your-team@example.com'
-        )
-    }
-    failure {
-        emailext(
-            subject: "Pipeline Failure: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """
-                <h2>Pipeline Failure</h2>
-                <p>Pipeline <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> failed.</p>
-                <p>Please check the logs <a href="${env.BUILD_URL}">here</a>.</p>
-            """,
-            to: 'your-team@example.com'
-        )
-    }
-}
 }
