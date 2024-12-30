@@ -57,7 +57,7 @@ pipeline {
                 }
             }
         }
-        stage('deploy') {
+        stage('deploy via EC2') {
             steps {
                 script {
                    echo 'Deploying Docker image to ${params.DEPLOY_ENV} environment...'
