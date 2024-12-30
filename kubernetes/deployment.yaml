@@ -14,11 +14,9 @@ spec:
       labels:
         app: $APP_NAME
     spec:
-      imagePullSecrets:
-        - name: my-registry-key
       containers:
         - name: $APP_NAME
-          image: $IMAGE_REPO:$IMAGE_NAME
+          image: ghassen07/my-repo:$IMAGE_NAME
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
